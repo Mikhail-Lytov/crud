@@ -172,9 +172,15 @@ public abstract class AbstractServiceImpl<E extends AbstractEntity, R extends Ab
     @Transactional(readOnly = true)
     public AbstractResponseDTO searchFilter(SearchRequest request) throws FindException {
         log.info("Search with filters: {}", request);
+        Pageable pageable;
         try {
             SearchSpecification<E> specification = new SearchSpecification<>(request);
-            Pageable pageable = SearchSpecification.getPageable(request.getPage(), request.getSize());
+            if (request.getSize() != null) {
+                pageable = SearchSpecification.getPageable(request.getPage(), request.getSize());
+            } else {
+                long countEntity = repository.count(specification);
+                pageable = SearchSpecification.getPageable(request.getPage(), (int) countEntity);
+            }
             var page = repository.findAll(specification, pageable);
             return new AbstractResponseDTO(page.getContent(), page.getTotalElements(), page.getTotalPages());
         } catch (Exception e) {
